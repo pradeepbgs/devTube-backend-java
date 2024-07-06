@@ -94,4 +94,40 @@ public class UserController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String,String>> login (
+        @RequestPart ("username") String username,
+        @RequestPart ("email") String email,
+        @RequestPart ("password") String password){
+
+            Map<String,String> response = new HashMap<>();
+
+            if (username.isEmpty() || username == null || email.isEmpty() || email == null) {
+                response.put("err", "please provide username or email");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (password.isEmpty() || password == null) {
+                response.put("err", "please provide password");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            User user = userRepository.findUserByEmailOrUsername(username, email);
+            
+            boolean isPasswordValid = passwordEncoder.matches(password, user.getPassword());
+
+            if (!isPasswordValid) {
+                response.put("err", "Invalid Credentials");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // now we have to use jwt to generate token and set as cookies
+
+            try {
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
+                response.put("error", e.getMessage());
+                return ResponseEntity.status(400).body(response);
+            }
+    }
 }
