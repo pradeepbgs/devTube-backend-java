@@ -15,7 +15,7 @@ public class AuthRouteConfig implements WebMvcConfigurer{
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-        .addPathPatterns("/api/user/**")
+        .addPathPatterns("/api/**")
         .excludePathPatterns("/api/user/register","/api/user/login");
     }
 }

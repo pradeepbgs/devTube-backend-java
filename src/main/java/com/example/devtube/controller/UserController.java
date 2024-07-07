@@ -136,7 +136,7 @@ public class UserController {
         try {
             // now we have to use jwt to generate token and set as cookies
 
-            String token = jwtTokenUtil.generateToken(username);
+            String token = jwtTokenUtil.generateToken(username,user.getId());
 
             Cookie cookie = new Cookie("token", token);
             cookie.setPath("/");
@@ -189,7 +189,8 @@ public class UserController {
                 user.setEmail(email);
             }
             if (password != null && !password.isEmpty()) {
-                user.setPassword(password);
+                String hashedPassword = passwordEncoder.encode(password);
+                user.setPassword(hashedPassword);
             }
     
             userRepository.save(user);

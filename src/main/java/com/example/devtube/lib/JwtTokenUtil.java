@@ -14,8 +14,9 @@ public class JwtTokenUtil {
 
     private static final String SECRET_KEY = "yourSecretKey"; // Use a strong secret key
 
-    public String generateToken(String username) {
+    public String generateToken(String username,Integer id) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("user_id", id);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)

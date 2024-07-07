@@ -18,12 +18,9 @@ public class AuthInterceptor implements HandlerInterceptor{
     @Autowired
     private AuthServie authServie;
 
-     private static final Logger logger = LoggerFactory.getLogger(AuthInterceptor.class);
-
     @Override
     public boolean preHandle(HttpServletRequest request, 
     HttpServletResponse response, Object handler) throws IOException {
-        // logger.info("Interceptor preHandle method called. Request URI: {}", request.getRequestURI());
         if (authServie.isAuthenticated(request)) {
             return true;
         } else {
