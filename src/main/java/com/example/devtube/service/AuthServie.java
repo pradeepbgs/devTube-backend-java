@@ -14,7 +14,7 @@ public class AuthServie {
     private JwtTokenUtil jwtTokenUtil;
     
     public boolean isAuthenticated(HttpServletRequest request){
-        final String jwtCookieName = "Token"; 
+        final String jwtCookieName = "token"; 
 
         String token = null;
         Cookie [] cookies = request.getCookies();
@@ -32,6 +32,28 @@ public class AuthServie {
             return true; // user is authenticated
         } 
         return false; // not authenticated
+    }
+
+    public String getUserFromRequest(HttpServletRequest request) {
+        final String jwtCookieName = "token";
+
+        String token = null;
+        Cookie [] cookies = request.getCookies();
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(jwtCookieName)) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (token != null) {
+            return jwtTokenUtil.getUsernameFromToken(token);
+        } else {
+            return null;
+        }
     }
 
 }

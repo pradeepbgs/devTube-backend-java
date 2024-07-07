@@ -1,22 +1,22 @@
 package com.example.devtube.lib;
 
 public class ApiResponse {
-    private String status;
+    private int status;
     private String message;
     private Object data;
 
     // Constructors, getters, and setters
-    public ApiResponse(String status, String message, Object data) {
+    public ApiResponse(int status, String message, Object data) {
         this.status = status;
         this.message = message;
         this.data = data;
     }
 
-    public String getStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(int status) {
         this.status = status;
     }
 
