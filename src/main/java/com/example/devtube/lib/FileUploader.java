@@ -39,4 +39,8 @@ public class FileUploader {
 
         return isUploaded;
     }
+
+    public String getFilePath(MultipartFile multipartFile){
+        return UPLOAD_DIR+File.separator+multipartFile.getOriginalFilename();
+    }
 }

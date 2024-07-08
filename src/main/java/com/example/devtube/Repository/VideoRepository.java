@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.devtube.models.Video;
+import com.example.devtube.models.VideoModel;
 
-public interface VideoRepository extends JpaRepository<Video,Integer>{
-    List<Video> findByOwner(String owner);
+public interface VideoRepository extends JpaRepository<VideoModel,Integer>{
+    List<VideoModel> findByOwner(String owner);
 }

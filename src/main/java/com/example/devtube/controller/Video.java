@@ -1,6 +1,7 @@
 package com.example.devtube.controller;
 
 import org.springframework.http.RequestEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -12,11 +13,16 @@ import com.example.devtube.Repository.userRepository;
 import com.example.devtube.lib.ApiResponse;
 import com.example.devtube.lib.FileUploader;
 import com.example.devtube.models.User;
+import com.example.devtube.models.VideoModel;
 import com.example.devtube.service.AuthServie;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
+
+import java.time.LocalDateTime;
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
@@ -35,6 +41,12 @@ private userRepository userRepository;
 @Autowired
 private FileUploader fileUploader;
 
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse> getAllVideos() {
+        ApiResponse apiResponse = new ApiResponse(200, "all videos", videoRepository.findAll());
+        return ResponseEntity.ok(apiResponse);
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse> upload (
         @RequestPart("thumbnail") MultipartFile thumbnail,
@@ -42,6 +54,9 @@ private FileUploader fileUploader;
         @RequestPart("description") String description,
         @RequestPart("video") MultipartFile video,
         HttpServletRequest request){
+            System.out.println("hello");
+            System.out.println(thumbnail);
+            System.out.println(video);
         if (title.isEmpty() || title == null) {
             ApiResponse apiResponse = new ApiResponse(400, "pls provide title", null);
             return ResponseEntity.ok(apiResponse);
@@ -61,6 +76,11 @@ private FileUploader fileUploader;
         try {
              String loggedInUsername = authServie.getUserFromRequest(request);
              User user = userRepository.findByUsername(loggedInUsername);
+             System.out.println(loggedInUsername+user);
+             if (user == null) {
+                ApiResponse apiResponse = new ApiResponse(400, "user not found", null);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
+             }
             
              boolean isVideoUploaded = fileUploader.uploadFile(video);
              boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
@@ -68,11 +88,27 @@ private FileUploader fileUploader;
                 ApiResponse apiResponse = new ApiResponse(400, "didn't saved file`", null);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
             }
+             
+            String videoUrl = fileUploader.getFilePath(video); 
+            String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+            VideoModel videoModel = new VideoModel();
+            videoModel.setTitle(title);
+            videoModel.setDescription(description);
+            videoModel.setThumbnailUrl(thumbnailUrl);  
+            videoModel.setUrl(videoUrl); 
+            videoModel.setOwner(loggedInUsername);
+            videoModel.setCreatedAt(LocalDateTime.now());
+
+            videoRepository.save(videoModel);
+
             ApiResponse apiResponse = new ApiResponse(200,"file saved sucessfully", null);
             return ResponseEntity.ok(apiResponse);
+
         } catch (Exception e) {
+
             ApiResponse apiResponse = new ApiResponse(400,"internal server problem",null);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
+
         }
     }
 }
