@@ -4,6 +4,7 @@ import org.springframework.http.RequestEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,8 @@ import org.springframework.http.ResponseEntity;
 import java.time.LocalDateTime;
 import java.util.Date;
 
+
+import org.hibernate.mapping.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
@@ -111,4 +114,33 @@ private FileUploader fileUploader;
 
         }
     }
+
+    @GetMapping("/user-videos")
+    public ResponseEntity<ApiResponse> getUserVideos(
+        @RequestParam("username") String username,
+        @RequestParam(value = "page", defaultValue = "1") int page
+        ){
+        try {
+            if (username == null || username.isEmpty()) {
+                ApiResponse apiResponse = new ApiResponse(499, "pls provide username", null);
+                return ResponseEntity.ok(apiResponse);
+            }
+            int start = (page - 1) * 10;
+            java.util.List<VideoModel> userVideos = videoRepository.findByOwner(username)
+            .subList(start, Math.min(start + 10, videoRepository.findByOwner(username).size()));
+
+            if (userVideos.isEmpty()) {
+                ApiResponse apiResponse = new ApiResponse(200, "User has no videos", null);
+                return ResponseEntity.ok(apiResponse);
+            } 
+
+            ApiResponse apiResponse = new ApiResponse(200, "User videos fetched successfully", userVideos);
+            return  ResponseEntity.ok(apiResponse);
+            
+        } catch (Exception e) {
+        ApiResponse apiResponse = new ApiResponse(400, "Failed to fetch user videos", null);
+        return  ResponseEntity.ok(apiResponse);
+        }
+    }
+
 }
