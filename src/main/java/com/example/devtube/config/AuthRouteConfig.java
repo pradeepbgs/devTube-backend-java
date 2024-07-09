@@ -16,6 +16,12 @@ public class AuthRouteConfig implements WebMvcConfigurer{
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
         .addPathPatterns("/api/**")
-        .excludePathPatterns("/api/user/register","/api/user/login");
+        .excludePathPatterns(
+        "/api/user/register",
+        "/api/user/login",
+        "/api/video/test",
+        "/api/video/tester",
+        "/api/video/all"
+        );
     }
 }

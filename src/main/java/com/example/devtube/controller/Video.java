@@ -1,6 +1,5 @@
 package com.example.devtube.controller;
 
-import org.springframework.http.RequestEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
-
-import org.hibernate.mapping.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
@@ -142,5 +138,50 @@ private FileUploader fileUploader;
         return  ResponseEntity.ok(apiResponse);
         }
     }
+
+    @PostMapping("/update-video-details")
+    public ResponseEntity <ApiResponse> updateVideoDeatils(
+        @RequestPart(required = false) String title,
+        @RequestPart(required = false) String description,
+        @RequestParam("id") int video_id,
+        @RequestPart(required = false) MultipartFile thumbnail,
+        HttpServletRequest request){
+            try {
+                String loggedInUsername = authServie.getUserFromRequest(request);
+                User user = userRepository.findByUsername(loggedInUsername);
+                if (user == null) {
+                    ApiResponse apiResponse = new ApiResponse(400, "User not found", null);
+                    return ResponseEntity.ok(apiResponse);
+                }
+                VideoModel video = videoRepository.findById(video_id).orElse(null);
+                if (video == null) {
+                    ApiResponse apiResponse = new ApiResponse(400, "Video not found", null);
+                    return ResponseEntity.ok(apiResponse);
+                }
+                if (!video.getOwner().equals(loggedInUsername)) {
+                    ApiResponse apiResponse = new ApiResponse(400, "You are not the owner of this video", null);
+                    return ResponseEntity.ok(apiResponse);
+                }
+                if (title != null && !title.isEmpty()) {
+                    video.setTitle(title);
+                }
+                if (description != null && !description.isEmpty()) {
+                    video.setDescription(description);
+                }
+                if (thumbnail != null && !thumbnail.isEmpty()) {
+                    boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
+                    if (isThumbnailSaved) {
+                        String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+                        video.setThumbnailUrl(thumbnailUrl);
+                    }
+                }
+                videoRepository.save(video);
+                ApiResponse apiResponse = new ApiResponse(200, "Video details updated successfully", video);
+                return ResponseEntity.ok(apiResponse);
+            } catch (Exception e) {
+                ApiResponse apiResponse = new ApiResponse(400, "Failed to update video details", null);
+                return ResponseEntity.ok(apiResponse);
+            }
+        }
 
 }
