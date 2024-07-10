@@ -183,5 +183,40 @@ private FileUploader fileUploader;
                 return ResponseEntity.ok(apiResponse);
             }
         }
+    
+    @PostMapping("/delete")
+    public ResponseEntity<ApiResponse> deleteVideo(
+        @RequestParam("id") int video_id,
+        HttpServletRequest request){
+      try {
+        String loggedInUserName = authServie.getUserFromRequest(request);
+        User user = userRepository.findByUsername(loggedInUserName);
 
+        if (user == null) {
+            ApiResponse apiResponse = new ApiResponse(
+                400, 
+                "User not found", 
+                null);
+            return ResponseEntity.ok(apiResponse);
+        }
+
+        VideoModel video = videoRepository.findById(video_id).orElse(null);
+        if (video == null) {
+            ApiResponse apiResponse = new ApiResponse(400, "couldn't find video", null);
+            return ResponseEntity.ok(apiResponse);
+        }
+        videoRepository.delete(video);
+
+        ApiResponse apiResponse = new ApiResponse(
+            200, 
+            "video deleted successfully", 
+            null
+            );
+        return ResponseEntity.ok(apiResponse);
+
+      } catch (Exception e) {
+        ApiResponse apiResponse = new ApiResponse(400, "internal server error", null);
+        return ResponseEntity.ok(apiResponse);
+      }
+    }
 }
