@@ -14,7 +14,7 @@ import com.example.devtube.lib.ApiResponse;
 import com.example.devtube.lib.FileUploader;
 import com.example.devtube.models.User;
 import com.example.devtube.models.VideoModel;
-import com.example.devtube.service.AuthServie;
+import com.example.devtube.service.AuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -32,7 +32,7 @@ public class Video {
 private VideoRepository videoRepository;
 
 @Autowired
-private AuthServie authServie;
+private AuthService authService;
 
 @Autowired
 private userRepository userRepository;
@@ -73,9 +73,8 @@ private FileUploader fileUploader;
             return ResponseEntity.ok(apiResponse);
         }
         try {
-             String loggedInUsername = authServie.getUserFromRequest(request);
+             String loggedInUsername = authService.getUserFromRequest(request);
              User user = userRepository.findByUsername(loggedInUsername);
-             System.out.println(loggedInUsername+user);
              if (user == null) {
                 ApiResponse apiResponse = new ApiResponse(400, "user not found", null);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
@@ -147,7 +146,7 @@ private FileUploader fileUploader;
         @RequestPart(required = false) MultipartFile thumbnail,
         HttpServletRequest request){
             try {
-                String loggedInUsername = authServie.getUserFromRequest(request);
+                String loggedInUsername = authService.getUserFromRequest(request);
                 User user = userRepository.findByUsername(loggedInUsername);
                 if (user == null) {
                     ApiResponse apiResponse = new ApiResponse(400, "User not found", null);
@@ -189,7 +188,7 @@ private FileUploader fileUploader;
         @RequestParam("id") int video_id,
         HttpServletRequest request){
       try {
-        String loggedInUserName = authServie.getUserFromRequest(request);
+        String loggedInUserName = authService.getUserFromRequest(request);
         User user = userRepository.findByUsername(loggedInUserName);
 
         if (user == null) {

@@ -15,7 +15,7 @@ public class CommentModel {
     private Integer id;
     private String comment;
     private String user;
-    private String video;
+    private int video;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -37,10 +37,10 @@ public class CommentModel {
     public void setUser(String user) {
         this.user = user;
     }
-    public String getVideo() {
+    public int getVideo() {
         return video;
     }
-    public void setVideo(String video) {
+    public void setVideo(int video) {
         this.video = video;
     }
     public LocalDateTime getCreatedAt() {

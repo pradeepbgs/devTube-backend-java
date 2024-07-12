@@ -21,7 +21,7 @@ import com.example.devtube.Repository.userRepository;
 import com.example.devtube.lib.ApiResponse;
 import com.example.devtube.lib.JwtTokenUtil;
 import com.example.devtube.models.User;
-import com.example.devtube.service.AuthServie;
+import com.example.devtube.service.AuthService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +39,7 @@ public class UserController {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    private AuthServie authServie;
+    private AuthService authService;
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
@@ -174,7 +174,7 @@ public class UserController {
         HttpServletRequest request
     ) {
         try {
-            String loggedInUsername = authServie.getUserFromRequest(request);
+            String loggedInUsername = authService.getUserFromRequest(request);
     
             if (loggedInUsername == null) {
                 throw new Exception("User not authenticated");

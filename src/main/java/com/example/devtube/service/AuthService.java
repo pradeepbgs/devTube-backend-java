@@ -9,7 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
-public class AuthServie {
+public class AuthService {
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
     
