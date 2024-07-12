@@ -2,7 +2,9 @@ package com.example.devtube.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,8 +58,6 @@ public class CommentController {
                 return createResponse(400, "Video doesn't exist", null);
             }
 
-            // Removed the check if the logged-in user is the owner of the video, 
-            // as users can comment on any video, not just their own.
             CommentModel commentModel = new CommentModel();
             commentModel.setComment(comment);
             commentModel.setUser(loggedInUserName);
@@ -70,6 +70,73 @@ public class CommentController {
             return createResponse(500, "Internal server error while adding comment", null);
         }
     }
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse> delete(
+        @RequestParam("commentId") int commentId,
+        HttpServletRequest request){
+            try {
+                String loggedInUserName = authService.getUserFromRequest(request);
+                if (loggedInUserName == null || loggedInUserName.isEmpty()) {
+                    return createResponse(400, "Unauthorized", null);
+                }
+                CommentModel comment = commentRepository.findById(commentId).orElse(null);
+                if (comment == null) {
+                    return createResponse(404, "Comment not found", null);
+                }
+                
+                if (!loggedInUserName.equals(comment.getUser())) {
+                    return createResponse(
+                    400, 
+                    "fuck off u r not owner of this comment", 
+                    null);
+                }
+                commentRepository.delete(comment);
+                return createResponse(
+                    200, 
+                    "comment deleted successfully", 
+                    null);
+            } catch (Exception e) {
+               return createResponse(400, "internal server problem", e.getMessage());
+            }
+        }
+
+
+    @PutMapping("/change")
+    public ResponseEntity<ApiResponse> change (
+        @RequestParam("commentId") int commentId,
+        @RequestParam("comment") String comment,
+        HttpServletRequest request){
+            try {
+
+                if (comment == null || comment.isEmpty()) {
+                    return createResponse(400, "pls provide comment pls to change", null);
+                }
+
+                String loggedInUserName = authService.getUserFromRequest(request);
+
+                if (loggedInUserName == null || loggedInUserName.isEmpty()) {
+                    return createResponse(400, "Unauthorized", null);
+                }
+
+                CommentModel Usercomment = commentRepository.findById(commentId).orElse(null);
+                if (Usercomment == null) {
+                    return createResponse(404, "Comment not found", null);
+                }
+                if (!loggedInUserName.equals(Usercomment.getUser())) {
+                     return createResponse(400, "fuck off u r not owner of this comment", null);
+                }
+
+                Usercomment.setComment(comment);
+                commentRepository.save(Usercomment);
+
+                return createResponse(200, "comment changed successfully", Usercomment);
+            } catch (Exception e) {
+                return createResponse
+                (400, "internal server error", e.getMessage());
+            }
+        }
 
     private ResponseEntity<ApiResponse> createResponse(int status, String message, Object data) {
         ApiResponse apiResponse = new ApiResponse(status, message, data);
