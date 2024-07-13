@@ -14,7 +14,7 @@ public class CommentModel {
     @GeneratedValue(strategy =GenerationType.IDENTITY)
     private Integer id;
     private String comment;
-    private String user;
+    private String owner;
     private int video;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -31,11 +31,11 @@ public class CommentModel {
     public void setComment(String comment) {
         this.comment = comment;
     }
-    public String getUser() {
-        return user;
+    public String getOwner() {
+        return owner;
     }
-    public void setUser(String user) {
-        this.user = user;
+    public void setOwner(String owner) {
+        this.owner = owner;
     }
     public int getVideo() {
         return video;

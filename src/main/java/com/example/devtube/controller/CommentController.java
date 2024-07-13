@@ -60,7 +60,7 @@ public class CommentController {
 
             CommentModel commentModel = new CommentModel();
             commentModel.setComment(comment);
-            commentModel.setUser(loggedInUserName);
+            commentModel.setOwner(loggedInUserName);
             commentModel.setVideo(video.getId());
             commentRepository.save(commentModel);
 
@@ -86,7 +86,7 @@ public class CommentController {
                     return createResponse(404, "Comment not found", null);
                 }
                 
-                if (!loggedInUserName.equals(comment.getUser())) {
+                if (!loggedInUserName.equals(comment.getOwner())) {
                     return createResponse(
                     400, 
                     "fuck off u r not owner of this comment", 
@@ -124,7 +124,7 @@ public class CommentController {
                 if (Usercomment == null) {
                     return createResponse(404, "Comment not found", null);
                 }
-                if (!loggedInUserName.equals(Usercomment.getUser())) {
+                if (!loggedInUserName.equals(Usercomment.getOwner())) {
                      return createResponse(400, "fuck off u r not owner of this comment", null);
                 }
 
