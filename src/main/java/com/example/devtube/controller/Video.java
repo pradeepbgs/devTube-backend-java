@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.devtube.Repository.CommentRepository;
 import com.example.devtube.Repository.VideoRepository;
 import com.example.devtube.Repository.userRepository;
 import com.example.devtube.lib.ApiResponse;
 import com.example.devtube.lib.FileUploader;
+import com.example.devtube.models.CommentModel;
 import com.example.devtube.models.User;
 import com.example.devtube.models.VideoModel;
 import com.example.devtube.service.AuthService;
@@ -41,6 +43,9 @@ public class Video {
 
     @Autowired
     private FileUploader fileUploader;
+
+    @Autowired
+    CommentRepository commentRepository;
 
     @GetMapping("/all")
     public ResponseEntity<ApiResponse> getAllVideos() {
@@ -236,6 +241,20 @@ public class Video {
             return ResponseEntity.ok(apiResponse);
         }
     }
+
+
+    @GetMapping("/get-video-comments")
+    public ResponseEntity<ApiResponse> getVideoComments(
+        @RequestParam("videoId") int video_id){
+            try {
+                CommentModel comments = commentRepository.findByVideoId(video_id);
+            } catch (Exception e) {
+               return createResponse(
+                400, 
+                "internal server problem", 
+                e.getMessage());
+            }
+        }
 
     private ResponseEntity<ApiResponse> createResponse(int status, String message, Object data) {
         ApiResponse apiResponse = new ApiResponse(status, message, data);
