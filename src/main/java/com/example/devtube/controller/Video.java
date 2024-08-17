@@ -1,256 +1,115 @@
 package com.example.devtube.controller;
 
-import com.example.devtube.Repository.CommentRepository;
-import com.example.devtube.Repository.VideoRepository;
-import com.example.devtube.Repository.userRepository;
-import com.example.devtube.lib.ApiResponse;
-import com.example.devtube.lib.FileUploader;
-import com.example.devtube.models.CommentModel;
-import com.example.devtube.models.User;
-import com.example.devtube.models.VideoModel;
-import com.example.devtube.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import com.example.devtube.lib.ApiResponse;
+import com.example.devtube.service.AuthService;
+import com.example.devtube.service.VideoService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/api/video")
+@RequestMapping("/videos")
 public class Video {
 
-  @Autowired
-  private VideoRepository videoRepository;
+    @Autowired
+    private VideoService videoService;
 
-  @Autowired
-  private AuthService authService;
+    @Autowired
+    private AuthService authService;
 
-  @Autowired
-  private userRepository userRepository;
+    @PostMapping("/upload")
+    public ResponseEntity<ApiResponse> uploadVideo(
+            @RequestParam("thumbnail") MultipartFile thumbnail,
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("video") MultipartFile video,
+            HttpServletRequest request) {
 
-  @Autowired
-  private FileUploader fileUploader;
+        String loggedInUsername = authService.getUserFromRequest(request);
+        boolean success = videoService.uploadVideo(thumbnail, title, description, video, loggedInUsername);
 
-  @Autowired
-  CommentRepository commentRepository;
-
-  @GetMapping("/all")
-  public ResponseEntity<ApiResponse> getAllVideos() {
-    ApiResponse apiResponse = new ApiResponse(200, "all videos", videoRepository.findAll());
-    return ResponseEntity.ok(apiResponse);
-  }
-
-  @PostMapping("/upload")
-  public ResponseEntity<ApiResponse> upload(
-    @RequestPart("thumbnail") MultipartFile thumbnail,
-    @RequestPart("title") String title,
-    @RequestPart("description") String description,
-    @RequestPart("video") MultipartFile video,
-    HttpServletRequest request
-  ) {
-    System.out.println("hello");
-    System.out.println(thumbnail);
-    System.out.println(video);
-    if (title.isEmpty() || title == null) {
-      ApiResponse apiResponse = new ApiResponse(400, "pls provide title", null);
-      return ResponseEntity.ok(apiResponse);
-    }
-    if (description.isEmpty() || description == null) {
-      ApiResponse apiResponse = new ApiResponse(400, "pls provide description", null);
-      return ResponseEntity.ok(apiResponse);
-    }
-    if (video.isEmpty() || video == null) {
-      ApiResponse apiResponse = new ApiResponse(400, "pls provide video", null);
-      return ResponseEntity.ok(apiResponse);
-    }
-    if (thumbnail.isEmpty() || thumbnail == null) {
-      ApiResponse apiResponse = new ApiResponse(400, "pls provide thumbnail", null);
-      return ResponseEntity.ok(apiResponse);
-    }
-    try {
-      String loggedInUsername = authService.getUserFromRequest(request);
-      User user = userRepository.findByUsername(loggedInUsername);
-      if (user == null) {
-        ApiResponse apiResponse = new ApiResponse(400, "user not found", null);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
-      }
-
-      boolean isVideoUploaded = fileUploader.uploadFile(video);
-      boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-      if (!isVideoUploaded || !isThumbnailSaved) {
-        ApiResponse apiResponse = new ApiResponse(400, "didn't saved file`", null);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
-      }
-
-      String videoUrl = fileUploader.getFilePath(video);
-      String thumbnailUrl = fileUploader.getFilePath(thumbnail);
-      VideoModel videoModel = new VideoModel();
-      videoModel.setTitle(title);
-      videoModel.setDescription(description);
-      videoModel.setThumbnailUrl(thumbnailUrl);
-      videoModel.setUrl(videoUrl);
-      videoModel.setOwner(loggedInUsername);
-      videoModel.setCreatedAt(LocalDateTime.now());
-
-      videoRepository.save(videoModel);
-
-      ApiResponse apiResponse = new ApiResponse(200, "file saved sucessfully", null);
-      return ResponseEntity.ok(apiResponse);
-    } catch (Exception e) {
-      ApiResponse apiResponse = new ApiResponse(400, "internal server problem", null);
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
-    }
-  }
-
-  @GetMapping("/all-videos")
-  public ResponseEntity<ApiResponse> getVideos(@RequestParam(value = "page", defaultValue = "1") int page) {
-    try {
-      int pageSize = 10;
-      int start = (page - 1) * pageSize;
-      List<VideoModel> videos = videoRepository.findAll(PageRequest.of(page - 1, pageSize)).getContent();
-
-      if (videos.isEmpty()) {
-        return createResponse(404, "No videos found", null);
-      }
-
-      return createResponse(200, "Videos retrieved successfully", videos);
-    } catch (Exception e) {
-      return createResponse(400, "internal server problem", e.getMessage());
-    }
-  }
-
-  @GetMapping("/user-videos")
-  public ResponseEntity<ApiResponse> getUserVideos(
-    @RequestParam("username") String username,
-    @RequestParam(value = "page", defaultValue = "1") int page
-  ) {
-    try {
-      if (username == null || username.isEmpty()) {
-        ApiResponse apiResponse = new ApiResponse(499, "pls provide username", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-      int start = (page - 1) * 10;
-      java.util.List<VideoModel> userVideos = videoRepository
-        .findByOwner(username)
-        .subList(start, Math.min(start + 10, videoRepository.findByOwner(username).size()));
-
-      if (userVideos.isEmpty()) {
-        ApiResponse apiResponse = new ApiResponse(200, "User has no videos", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-
-      ApiResponse apiResponse = new ApiResponse(200, "User videos fetched successfully", userVideos);
-      return ResponseEntity.ok(apiResponse);
-    } catch (Exception e) {
-      ApiResponse apiResponse = new ApiResponse(400, "Failed to fetch user videos", null);
-      return ResponseEntity.ok(apiResponse);
-    }
-  }
-
-  @PostMapping("/update-video-details")
-  public ResponseEntity<ApiResponse> updateVideoDeatils(
-    @RequestPart(required = false) String title,
-    @RequestPart(required = false) String description,
-    @RequestParam("id") int video_id,
-    @RequestPart(required = false) MultipartFile thumbnail,
-    HttpServletRequest request
-  ) {
-    try {
-      String loggedInUsername = authService.getUserFromRequest(request);
-      User user = userRepository.findByUsername(loggedInUsername);
-      if (user == null) {
-        ApiResponse apiResponse = new ApiResponse(400, "User not found", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-      VideoModel video = videoRepository.findById(video_id).orElse(null);
-      if (video == null) {
-        ApiResponse apiResponse = new ApiResponse(400, "Video not found", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-      if (!video.getOwner().equals(loggedInUsername)) {
-        ApiResponse apiResponse = new ApiResponse(400, "You are not the owner of this video", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-      if (title != null && !title.isEmpty()) {
-        video.setTitle(title);
-      }
-      if (description != null && !description.isEmpty()) {
-        video.setDescription(description);
-      }
-      if (thumbnail != null && !thumbnail.isEmpty()) {
-        boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-        if (isThumbnailSaved) {
-          String thumbnailUrl = fileUploader.getFilePath(thumbnail);
-          video.setThumbnailUrl(thumbnailUrl);
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(200, "File saved successfully", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(400, "Failed to upload video", null));
         }
-      }
-      videoRepository.save(video);
-      ApiResponse apiResponse = new ApiResponse(200, "Video details updated successfully", video);
-      return ResponseEntity.ok(apiResponse);
-    } catch (Exception e) {
-      ApiResponse apiResponse = new ApiResponse(400, "Failed to update video details", null);
-      return ResponseEntity.ok(apiResponse);
     }
-  }
 
-  @PostMapping("/delete")
-  public ResponseEntity<ApiResponse> deleteVideo(@RequestParam("id") int video_id, HttpServletRequest request) {
-    try {
-      String loggedInUserName = authService.getUserFromRequest(request);
-      User user = userRepository.findByUsername(loggedInUserName);
-
-      if (user == null) {
-        ApiResponse apiResponse = new ApiResponse(400, "User not found", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-
-      VideoModel video = videoRepository.findById(video_id).orElse(null);
-      if (video == null) {
-        ApiResponse apiResponse = new ApiResponse(400, "couldn't find video", null);
-        return ResponseEntity.ok(apiResponse);
-      }
-      videoRepository.delete(video);
-
-      ApiResponse apiResponse = new ApiResponse(200, "video deleted successfully", null);
-      return ResponseEntity.ok(apiResponse);
-    } catch (Exception e) {
-      ApiResponse apiResponse = new ApiResponse(400, "internal server error", null);
-      return ResponseEntity.ok(apiResponse);
+    @GetMapping
+    public ResponseEntity<ApiResponse> getVideos(@RequestParam("page") int page) {
+        var videosPage = videoService.getVideos(page);
+        if (videosPage.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(404, "No videos found", null));
+        }
+        return ResponseEntity.ok(new ApiResponse(200, "Videos retrieved successfully", videosPage.getContent()));
     }
-  }
 
-  @GetMapping("/get-video-comments")
-  public ResponseEntity<ApiResponse> getVideoComments(
-    @RequestParam("videoId") int video_id,
-    @RequestParam(value = "page", defaultValue = "1") int page
-  ) {
-    try {
-      Pageable pageable = PageRequest.of(page, 10);
-      Page<CommentModel> commentsPage = commentRepository.findByVideoId(video_id, pageable);
+    @GetMapping("/user")
+    public ResponseEntity<ApiResponse> getUserVideos(
+            @RequestParam("username") String username,
+            @RequestParam("page") int page) {
 
-      ApiResponse response = new ApiResponse(200, "success", commentsPage.getContent());
-      response.addPaginationDetails(commentsPage);
-
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      return createResponse(400, "internal server problem", e.getMessage());
+        var videoPage = videoService.getUserVideos(username, page);
+        if (videoPage.isEmpty()) {
+            return ResponseEntity.ok(new ApiResponse(200, "User has no videos", null));
+        }
+        return ResponseEntity.ok(new ApiResponse(200, "User videos fetched successfully", videoPage.getContent()));
     }
-  }
 
-  private ResponseEntity<ApiResponse> createResponse(int status, String message, Object data) {
-    ApiResponse apiResponse = new ApiResponse(status, message, data);
-    return ResponseEntity.status(status).body(apiResponse);
-  }
+    @PutMapping("/update")
+    public ResponseEntity<ApiResponse> updateVideoDetails(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam("videoId") int videoId,
+            @RequestParam(value = "thumbnail", required = false) MultipartFile thumbnail,
+            HttpServletRequest request) {
+
+        String loggedInUsername = authService.getUserFromRequest(request);
+        boolean success = videoService.updateVideoDetails(title, description, videoId, thumbnail, loggedInUsername);
+
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(200, "Video details updated successfully", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(400, "Failed to update video details", null));
+        }
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse> deleteVideo(
+            @RequestParam("videoId") int videoId,
+            HttpServletRequest request) {
+
+        String loggedInUsername = authService.getUserFromRequest(request);
+        boolean success = videoService.deleteVideo(videoId, loggedInUsername);
+
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(200, "Video deleted successfully", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiResponse(400, "Failed to delete video", null));
+        }
+    }
+
+    @GetMapping("/{videoId}/comments")
+    public ResponseEntity<ApiResponse> getVideoComments(
+            @PathVariable("videoId") int videoId,
+            @RequestParam("page") int page) {
+
+        var commentsPage = videoService.getVideoComments(videoId, page);
+        if (commentsPage.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(404, "No comments found for this video", null));
+        }
+        return ResponseEntity.ok(new ApiResponse(200, "Comments fetched successfully", commentsPage.getContent()));
+    }
 }

@@ -1,11 +1,13 @@
 package com.example.devtube.Repository;
 
-import java.util.List;
 
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.devtube.models.VideoModel;
 
 public interface VideoRepository extends JpaRepository<VideoModel,Integer>{
-    List<VideoModel> findByOwner(String owner);
+    Page<VideoModel> findByOwner(String owner,Pageable pageable);
 }
