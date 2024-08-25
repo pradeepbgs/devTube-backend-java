@@ -1,4 +1,4 @@
-package com.example.devtube.lib;
+package com.example.devtube.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

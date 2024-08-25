@@ -1,4 +1,4 @@
-package com.example.devtube.lib;
+package com.example.devtube.utils;
 
 public class ApiResponse {
     private int status;

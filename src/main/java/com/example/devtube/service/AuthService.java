@@ -3,7 +3,7 @@ package com.example.devtube.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.devtube.lib.JwtTokenUtil;
+import com.example.devtube.utils.JwtTokenUtil;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;

@@ -6,9 +6,9 @@
 package com.example.devtube.service;
 
 
-import com.example.devtube.lib.JwtTokenUtil;
-import com.example.devtube.lib.FileUploader;
-import com.example.devtube.models.User;
+import com.example.devtube.repository.userRepository;
+import com.example.devtube.utils.FileUploader;
+import com.example.devtube.utils.JwtTokenUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,12 +21,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.example.devtube.Repository.userRepository;
+import com.example.devtube.entities.User;
 
 /**
  *
  * @author pradeep
  */
+
+@Service
 public class UserService {
     @Autowired
     private userRepository userRepository;

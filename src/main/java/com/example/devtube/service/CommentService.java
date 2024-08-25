@@ -1,20 +1,16 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 package com.example.devtube.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Service;
 
-import com.example.devtube.Repository.CommentRepository;
-import com.example.devtube.Repository.VideoRepository;
-import com.example.devtube.Repository.userRepository;
-import com.example.devtube.lib.ApiResponse;
-import com.example.devtube.models.CommentModel;
-import com.example.devtube.models.User;
-import com.example.devtube.models.VideoModel;
+import com.example.devtube.entities.Comment;
+import com.example.devtube.entities.User;
+import com.example.devtube.entities.Video;
+import com.example.devtube.repository.CommentRepository;
+import com.example.devtube.repository.VideoRepository;
+import com.example.devtube.repository.userRepository;
+import com.example.devtube.utils.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -22,6 +18,8 @@ import jakarta.servlet.http.HttpServletRequest;
  *
  * @author pradeep
  */
+
+@Service
 public class CommentService {
     @Autowired
     private CommentRepository commentRepository;
@@ -35,7 +33,6 @@ public class CommentService {
     @Autowired
     private VideoRepository videoRepository;
 
-    @Transactional
     public ApiResponse addComment(int videoId, String comment, HttpServletRequest request) {
         if (comment == null || comment.isEmpty()) {
             return new ApiResponse(400, "Please provide a comment", null);
@@ -47,12 +44,12 @@ public class CommentService {
             return new ApiResponse(400, "User doesn't exist", null);
         }
 
-        VideoModel video = videoRepository.findById(videoId).orElse(null);
+        Video video = videoRepository.findById(videoId).orElse(null);
         if (video == null) {
             return new ApiResponse(400, "Video doesn't exist", null);
         }
 
-        CommentModel commentModel = new CommentModel();
+        Comment commentModel = new Comment();
         commentModel.setComment(comment);
         commentModel.setOwner(loggedInUserName);
         commentModel.setVideo(video.getId());
@@ -61,14 +58,13 @@ public class CommentService {
         return new ApiResponse(200, "Comment added successfully", null);
     }
 
-    @Transactional
     public ApiResponse deleteComment(int commentId, HttpServletRequest request) {
         String loggedInUserName = authService.getUserFromRequest(request);
         if (loggedInUserName == null || loggedInUserName.isEmpty()) {
             return new ApiResponse(400, "Unauthorized", null);
         }
 
-        CommentModel comment = commentRepository.findById(commentId).orElse(null);
+        Comment comment = commentRepository.findById(commentId).orElse(null);
         if (comment == null) {
             return new ApiResponse(404, "Comment not found", null);
         }
@@ -81,7 +77,6 @@ public class CommentService {
         return new ApiResponse(200, "Comment deleted successfully", null);
     }
 
-    @Transactional
     public ApiResponse changeComment(int commentId, String comment, HttpServletRequest request) {
         if (comment == null || comment.isEmpty()) {
             return new ApiResponse(400, "Please provide a comment to change", null);
@@ -92,7 +87,7 @@ public class CommentService {
             return new ApiResponse(400, "Unauthorized", null);
         }
 
-        CommentModel existingComment = commentRepository.findById(commentId).orElse(null);
+        Comment existingComment = commentRepository.findById(commentId).orElse(null);
         if (existingComment == null) {
             return new ApiResponse(404, "Comment not found", null);
         }

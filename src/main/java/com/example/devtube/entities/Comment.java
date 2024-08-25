@@ -1,4 +1,4 @@
-package com.example.devtube.models;
+package com.example.devtube.entities;
 
 import java.time.LocalDateTime;
 
@@ -9,7 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
-public class CommentModel {
+public class Comment {
     @Id
     @GeneratedValue(strategy =GenerationType.IDENTITY)
     private Integer id;

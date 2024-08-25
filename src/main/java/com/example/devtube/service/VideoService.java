@@ -9,13 +9,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.devtube.Repository.CommentRepository;
-import com.example.devtube.Repository.VideoRepository;
-import com.example.devtube.Repository.userRepository;
-import com.example.devtube.lib.FileUploader;
-import com.example.devtube.models.CommentModel;
-import com.example.devtube.models.User;
-import com.example.devtube.models.VideoModel;
+import com.example.devtube.entities.Comment;
+import com.example.devtube.entities.User;
+import com.example.devtube.entities.Video;
+import com.example.devtube.repository.CommentRepository;
+import com.example.devtube.repository.VideoRepository;
+import com.example.devtube.repository.userRepository;
+import com.example.devtube.utils.FileUploader;
 
 @Service
 public class VideoService {
@@ -59,7 +59,7 @@ public class VideoService {
 
             String videoUrl = fileUploader.getFilePath(video);
             String thumbnailUrl = fileUploader.getFilePath(thumbnail);
-            VideoModel videoModel = new VideoModel();
+            Video videoModel = new Video();
             videoModel.setTitle(title);
             videoModel.setDescription(description);
             videoModel.setThumbnailUrl(thumbnailUrl);
@@ -74,12 +74,12 @@ public class VideoService {
         }
     }
 
-    public Page<VideoModel> getVideos(int page) {
+    public Page<Video> getVideos(int page) {
         Pageable pageable = PageRequest.of(page - 1, 10);
         return videoRepository.findAll(pageable);
     }
 
-    public Page<VideoModel> getUserVideos(String username, int page) {
+    public Page<Video> getUserVideos(String username, int page) {
         if (username == null || username.isEmpty()) {
             return Page.empty(); // Indicate invalid input
         }
@@ -101,7 +101,7 @@ public class VideoService {
                 return false; // User not found
             }
 
-            VideoModel video = videoRepository.findById(videoId).orElse(null);
+            Video video = videoRepository.findById(videoId).orElse(null);
             if (video == null || !video.getOwner().equals(loggedInUsername)) {
                 return false; // Video not found or unauthorized
             }
@@ -134,7 +134,7 @@ public class VideoService {
                 return false; // User not found
             }
 
-            VideoModel video = videoRepository.findById(videoId).orElse(null);
+            Video video = videoRepository.findById(videoId).orElse(null);
             if (video == null || !video.getOwner().equals(loggedInUsername)) {
                 return false; // Video not found or unauthorized
             }
@@ -146,8 +146,8 @@ public class VideoService {
         }
     }
 
-    public Page<CommentModel> getVideoComments(int videoId, int page) {
+    public Page<Comment> getVideoComments(int videoId, int page) {
         Pageable pageable = PageRequest.of(page - 1, 10);
-        return commentRepository.findByVideoId(videoId, pageable);
+        return commentRepository.findByVideo(videoId, pageable);
     }
 }

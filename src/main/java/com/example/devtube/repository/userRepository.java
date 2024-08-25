@@ -1,8 +1,8 @@
-package com.example.devtube.Repository;
+package com.example.devtube.repository;
 
 import org.springframework.data.repository.CrudRepository;
 
-import com.example.devtube.models.User;
+import com.example.devtube.entities.User;
 
 public interface userRepository extends CrudRepository<User,Integer> {
     boolean existsByUsernameOrEmail(String username, String email);

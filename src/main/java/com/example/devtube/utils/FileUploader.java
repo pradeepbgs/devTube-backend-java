@@ -1,4 +1,4 @@
-package com.example.devtube.lib;
+package com.example.devtube.utils;
 
 import java.io.File;
 import java.nio.file.Files;

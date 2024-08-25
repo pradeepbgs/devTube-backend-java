@@ -13,15 +13,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.devtube.lib.ApiResponse;
 import com.example.devtube.service.AuthService;
 import com.example.devtube.service.VideoService;
+import com.example.devtube.utils.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/videos")
-public class Video {
+@RequestMapping("/api/videos")
+public class VideoController {
 
     @Autowired
     private VideoService videoService;
@@ -47,7 +47,7 @@ public class Video {
         }
     }
 
-    @GetMapping
+    @GetMapping("/getvideos")
     public ResponseEntity<ApiResponse> getVideos(@RequestParam("page") int page) {
         var videosPage = videoService.getVideos(page);
         if (videosPage.isEmpty()) {
@@ -62,6 +62,7 @@ public class Video {
             @RequestParam("page") int page) {
 
         var videoPage = videoService.getUserVideos(username, page);
+        System.out.println(videoPage);
         if (videoPage.isEmpty()) {
             return ResponseEntity.ok(new ApiResponse(200, "User has no videos", null));
         }
@@ -105,11 +106,18 @@ public class Video {
     public ResponseEntity<ApiResponse> getVideoComments(
             @PathVariable("videoId") int videoId,
             @RequestParam("page") int page) {
+            
+                if (page < 1) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse(400, "Page number must be greater than 0", null));
+                }
 
         var commentsPage = videoService.getVideoComments(videoId, page);
+
         if (commentsPage.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(404, "No comments found for this video", null));
         }
+        
         return ResponseEntity.ok(new ApiResponse(200, "Comments fetched successfully", commentsPage.getContent()));
     }
 }

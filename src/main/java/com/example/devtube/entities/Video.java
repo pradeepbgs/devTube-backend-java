@@ -1,4 +1,4 @@
-package com.example.devtube.models;
+package com.example.devtube.entities;
 
 import java.time.LocalDateTime;
 
@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 
 
 @Entity
-public class VideoModel {
+public class Video {
     @Id
     @GeneratedValue(strategy =GenerationType.IDENTITY)
     private Integer id;
