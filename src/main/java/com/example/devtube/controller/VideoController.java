@@ -29,6 +29,15 @@ public class VideoController {
     @Autowired
     private AuthService authService;
 
+    @GetMapping("/all-videos")
+    public ResponseEntity<ApiResponse> getAllVideos(){
+        var videosPage = videoService.getVideos(1);
+        if (videosPage.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse(404, "No videos found", null));
+        }
+        return ResponseEntity.ok(new ApiResponse(200, "Videos retrieved successfully", videosPage.getContent()));
+    }
+
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse> uploadVideo(
             @RequestParam("thumbnail") MultipartFile thumbnail,
@@ -56,13 +65,11 @@ public class VideoController {
         return ResponseEntity.ok(new ApiResponse(200, "Videos retrieved successfully", videosPage.getContent()));
     }
 
-    @GetMapping("/user")
+    @GetMapping("/user-videos")
     public ResponseEntity<ApiResponse> getUserVideos(
             @RequestParam("username") String username,
             @RequestParam("page") int page) {
-
         var videoPage = videoService.getUserVideos(username, page);
-        System.out.println(videoPage);
         if (videoPage.isEmpty()) {
             return ResponseEntity.ok(new ApiResponse(200, "User has no videos", null));
         }
