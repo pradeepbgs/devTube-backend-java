@@ -5,7 +5,7 @@ import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
 import com.example.devtube.repository.CommentRepository;
 import com.example.devtube.repository.VideoRepository;
-import com.example.devtube.repository.userRepository;
+import com.example.devtube.repository.UserRepository;
 import com.example.devtube.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ public class CommentService {
   private AuthService authService;
 
   @Autowired
-  private userRepository userRepository;
+  private UserRepository userRepository;
 
   @Autowired
   private VideoRepository videoRepository;

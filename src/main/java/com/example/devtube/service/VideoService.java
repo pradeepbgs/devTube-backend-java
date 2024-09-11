@@ -14,7 +14,7 @@ import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
 import com.example.devtube.repository.CommentRepository;
 import com.example.devtube.repository.VideoRepository;
-import com.example.devtube.repository.userRepository;
+import com.example.devtube.repository.UserRepository;
 import com.example.devtube.utils.FileUploader;
 
 @Service
@@ -25,7 +25,7 @@ public class VideoService {
 
 
     @Autowired
-    private userRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
     private FileUploader fileUploader;

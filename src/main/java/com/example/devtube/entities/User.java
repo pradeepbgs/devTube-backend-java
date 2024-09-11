@@ -1,5 +1,4 @@
 package com.example.devtube.entities;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,7 +7,7 @@ import jakarta.persistence.Table;
 
 @Entity
 
-@Table(name = "\"user\"") // Using double quotes to escape 'user' as an identifier
+@Table(name = "\"user\"") 
 public class User {
     @Id
     @GeneratedValue(strategy =GenerationType.IDENTITY)

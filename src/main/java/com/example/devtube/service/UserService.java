@@ -2,7 +2,7 @@ package com.example.devtube.service;
 
 import com.example.devtube.dto.UserInfoDTO;
 import com.example.devtube.entities.User;
-import com.example.devtube.repository.userRepository;
+import com.example.devtube.repository.UserRepository;
 import com.example.devtube.utils.JwtTokenUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
   @Autowired
-  private userRepository userRepository;
+  private UserRepository userRepository;
 
   @Autowired
   private BCryptPasswordEncoder passwordEncoder;
