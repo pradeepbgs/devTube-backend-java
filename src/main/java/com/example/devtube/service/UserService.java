@@ -1,154 +1,130 @@
 package com.example.devtube.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.example.devtube.dto.UserInfoDTO;
 import com.example.devtube.entities.User;
 import com.example.devtube.repository.UserRepository;
+import com.example.devtube.utils.ApiResponse;
 import com.example.devtube.utils.JwtTokenUtil;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.HashMap;
-import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
 
-  @Autowired
-  private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-  @Autowired
-  private BCryptPasswordEncoder passwordEncoder;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
-  @Autowired
-  private JwtTokenUtil jwtTokenUtil;
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
 
+    public ApiResponse register(UserInfoDTO userInfoDTO) {
+        if (userInfoDTO.getUsername() == null || userInfoDTO.getUsername().isEmpty()) {
+            return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Username cannot be empty", null);
+        }
+        
+        if (userInfoDTO.getEmail() == null || userInfoDTO.getEmail().isEmpty()) {
+            return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Email cannot be empty", null);
+        }
+        if (userInfoDTO.getPassword() == null || userInfoDTO.getPassword().isEmpty()) {
+            return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Password cannot be empty", null);
+        }
 
-  public Map<String, String> register(UserInfoDTO userInfoDTO) {
-    Map<String, String> response = new HashMap<>();
+        try {
+            boolean existingUser = userRepository.existsByUsernameOrEmail(userInfoDTO.getUsername(), userInfoDTO.getEmail());
+            if (existingUser) {
+                return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Username or email already exists", null);
+            }
 
-    if (userInfoDTO.getUsername() == null || userInfoDTO.getUsername().isEmpty()) {
-      response.put("error", "username cannot be empty");
-      return response;
-    }
-    if (userInfoDTO.getEmail() == null || userInfoDTO.getEmail().isEmpty()) {
-      response.put("error", "email cannot be empty");
-      return response;
-    }
-    if (userInfoDTO.getPassword() == null || userInfoDTO.getPassword().isEmpty()) {
-      response.put("error", "password cannot be empty");
-      return response;
-    }
+            User springUser = new User();
+            springUser.setUsername(userInfoDTO.getUsername());
+            springUser.setEmail(userInfoDTO.getEmail());
+            springUser.setPassword(passwordEncoder.encode(userInfoDTO.getPassword()));
 
-    try {
-      boolean existingUser = userRepository.existsByUsernameOrEmail(userInfoDTO.getUsername(), userInfoDTO.getEmail());
-      if (existingUser) {
-        response.put("error", "Username or email already exists");
-        return response;
-      }
+            userRepository.save(springUser);
 
-      User springUser = new User();
-      springUser.setUsername(userInfoDTO.getUsername());
-      springUser.setEmail(userInfoDTO.getEmail());
-      springUser.setPassword(passwordEncoder.encode(userInfoDTO.getPassword()));
-
-      userRepository.save(springUser);
-
-      response.put("message", "user registered successfully");
-      return response;
-    } catch (Exception e) {
-      response.put("error", e.getMessage());
-      return response;
-    }
-  }
-
-  public Map<String, String> login(UserInfoDTO userInfo, HttpServletResponse response) {
-    Map<String, String> responses = new HashMap<>();
-
-    if (userInfo.getUsername().isEmpty() || userInfo.getUsername() == null) {
-      responses.put("err", "please provide username or email");
-      return responses;
-    }
-    if (userInfo.getPassword().isEmpty() || userInfo.getPassword() == null) {
-      responses.put("err", "please provide password");
-      return responses;
+            return new ApiResponse(HttpStatus.CREATED.value(), "User registered successfully", springUser);
+        } catch (Exception e) {
+            return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage(), null);
+        }
     }
 
-    User user = userRepository.findByUsername(userInfo.getUsername());
+    public ApiResponse login(UserInfoDTO userInfo, HttpServletResponse response) {
+        if (userInfo.getUsername() == null || userInfo.getUsername().isEmpty()) {
+            return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Please provide username or email", null);
+        }
+        if (userInfo.getPassword() == null || userInfo.getPassword().isEmpty()) {
+            return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Please provide password", null);
+        }
 
-    if (user == null) {
-      responses.put("error", "Invalid username");
-      return responses;
+        User user = userRepository.findByUsername(userInfo.getUsername());
+        if (user == null) {
+            return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Invalid username", null);
+        }
+
+        boolean isPasswordValid = passwordEncoder.matches(userInfo.getPassword(), user.getPassword());
+        if (!isPasswordValid) {
+            return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Invalid credentials", null);
+        }
+
+        try {
+            String token = jwtTokenUtil.generateToken(userInfo.getUsername(), user.getId());
+            Cookie cookie = new Cookie("token", token);
+            cookie.setPath("/");
+            cookie.setMaxAge(7 * 24 * 60 * 60);
+            cookie.setHttpOnly(true);
+            response.addCookie(cookie);
+
+            return new ApiResponse(HttpStatus.OK.value(), "Login successful", null);
+        } catch (Exception e) {
+            return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage(), null);
+        }
     }
 
-    boolean isPasswordValid = passwordEncoder.matches(userInfo.getPassword(), user.getPassword());
+    public ApiResponse logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("token", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
 
-    if (!isPasswordValid) {
-      responses.put("err", "Invalid Credentials");
-      return responses;
+        return new ApiResponse(HttpStatus.OK.value(), "Logout successful", null);
     }
 
-    try {
-      String token = jwtTokenUtil.generateToken(userInfo.getUsername(), user.getId());
-      Cookie cookie = new Cookie("token", token);
-      cookie.setPath("/");
-      cookie.setMaxAge(7 * 24 * 60 * 60);
-      cookie.setHttpOnly(true);
-      response.addCookie(cookie);
+    public ApiResponse changeUserDetails(UserInfoDTO userInfo, HttpServletRequest request) {
+        try {
+            String loggedInUsername = (String) request.getAttribute("username"); // Assume username is set in request
 
-      responses.put("message", "login successful");
-      return responses;
-    } catch (Exception e) {
-      responses.put("error", e.getMessage());
-      return responses;
+            if (loggedInUsername == null) {
+                return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "User not authenticated", null);
+            }
+
+            User user = userRepository.findByUsername(loggedInUsername);
+
+            if (userInfo.getUsername() != null && !userInfo.getUsername().isEmpty()) {
+                user.setUsername(userInfo.getUsername());
+            }
+            if (userInfo.getEmail() != null && !userInfo.getEmail().isEmpty()) {
+                user.setEmail(userInfo.getEmail());
+            }
+            if (userInfo.getPassword() != null && !userInfo.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(userInfo.getPassword()));
+            }
+
+            userRepository.save(user);
+
+            return new ApiResponse(HttpStatus.OK.value(), "User details updated", user);
+        } catch (Exception e) {
+            return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to update user details", null);
+        }
     }
-  }
-
-  public Map<String, String> logout(HttpServletResponse response) {
-    Cookie cookie = new Cookie("token", null);
-    cookie.setPath("/");
-    cookie.setMaxAge(0);
-    cookie.setHttpOnly(true);
-
-    response.addCookie(cookie);
-
-    Map<String, String> responseMap = new HashMap<>();
-    responseMap.put("message", "logout successful");
-    return responseMap;
-  }
-
-  public Map<String, Object> changeUserDetails(UserInfoDTO userInfo, HttpServletRequest request) {
-    Map<String, Object> response = new HashMap<>();
-    try {
-      String loggedInUsername = (String) request.getAttribute("username"); // Assume username is set in request
-
-      if (loggedInUsername == null) {
-        response.put("error", "User not authenticated");
-        return response;
-      }
-
-      User user = userRepository.findByUsername(loggedInUsername);
-
-      if (userInfo.getUsername() != null && !userInfo.getUsername().isEmpty()) {
-        user.setUsername(userInfo.getUsername());
-      }
-      if (userInfo.getEmail() != null && !userInfo.getEmail().isEmpty()) {
-        user.setEmail(userInfo.getEmail());
-      }
-      if (userInfo.getPassword() != null && !userInfo.getPassword().isEmpty()) {
-        user.setPassword(passwordEncoder.encode(userInfo.getPassword()));
-      }
-
-      userRepository.save(user);
-
-      response.put("message", "User details updated");
-      response.put("user", user);
-      return response;
-    } catch (Exception e) {
-      response.put("error", "Failed to update user details");
-      return response;
-    }
-  }
 }
