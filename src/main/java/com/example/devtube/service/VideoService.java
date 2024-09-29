@@ -1,153 +1,175 @@
 package com.example.devtube.service;
 
-import java.time.LocalDateTime;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.example.devtube.entities.Comment;
 import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
 import com.example.devtube.repository.CommentRepository;
-import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.repository.UserRepository;
+import com.example.devtube.repository.VideoRepository;
+import com.example.devtube.utils.ApiResponse;
 import com.example.devtube.utils.FileUploader;
+import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class VideoService {
 
-    @Autowired
-    private VideoRepository videoRepository;
+  @Autowired
+  private VideoRepository videoRepository;
 
+  @Autowired
+  private UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired
+  private FileUploader fileUploader;
 
-    @Autowired
-    private FileUploader fileUploader;
+  @Autowired
+  private CommentRepository commentRepository;
 
-    @Autowired
-    private CommentRepository commentRepository;
+  public ApiResponse uploadVideo(
+    MultipartFile thumbnail,
+    String title,
+    String description,
+    MultipartFile video,
+    String loggedInUsername
+  ) {
+    if (
+      title == null ||
+      title.isEmpty() ||
+      description == null ||
+      description.isEmpty() ||
+      video == null ||
+      video.isEmpty() ||
+      thumbnail == null ||
+      thumbnail.isEmpty()
+    ) {
+      return new ApiResponse(
+        HttpStatus.BAD_REQUEST.value(),
+        "title or description or video or thumbnail cannot be empty",
+        null
+      );
+    }
 
-    public boolean uploadVideo(
-            MultipartFile thumbnail,
-            String title,
-            String description,
-            MultipartFile video,
-            String loggedInUsername) {
+    try {
+      User user = userRepository.findByUsername(loggedInUsername);
+      if (user == null) {
+        return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "cannot find user!", null);
+      }
 
-        if (title == null || title.isEmpty() || description == null || description.isEmpty() ||
-            video == null || video.isEmpty() || thumbnail == null || thumbnail.isEmpty()) {
-            return false; // Indicate validation failure
+      boolean isVideoUploaded = fileUploader.uploadFile(video);
+      boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
+      if (!isVideoUploaded || !isThumbnailSaved) {
+        return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "video upload failed on server!", null);
+      }
+
+      String videoUrl = fileUploader.getFilePath(video);
+      String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+      Video videoModel = new Video();
+      videoModel.setTitle(title);
+      videoModel.setDescription(description);
+      videoModel.setThumbnailUrl(thumbnailUrl);
+      videoModel.setUrl(videoUrl);
+      videoModel.setOwner(loggedInUsername);
+      videoModel.setCreatedAt(LocalDateTime.now());
+
+      videoRepository.save(videoModel);
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "successfully video uploaded", videoModel);
+    } catch (Exception e) {
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "internal server error!", e.getMessage());
+    }
+  }
+
+  public ApiResponse getVideos(int page) {
+    if (page <= 0) {
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
+    }
+    Pageable pageable = PageRequest.of(page - 1, 10);
+    Page<Video> videos = videoRepository.findAll(pageable);
+    return new ApiResponse(HttpStatus.OK.value(), "Videos fetched successfully", videos);
+  }
+
+  public ApiResponse getUserVideos(String username, int page) {
+    if (username == null || username.isEmpty()) {
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Username cannot be empty", null);
+    }
+    if (page <= 0) {
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
+    }
+    Pageable pageable = PageRequest.of(page - 1, 10);
+    Page<Video> userVideos = videoRepository.findByOwner(username, pageable);
+    return new ApiResponse(HttpStatus.OK.value(), "User's videos fetched successfully", userVideos);
+  }
+
+  public ApiResponse updateVideoDetails(
+    String title,
+    String description,
+    int videoId,
+    MultipartFile thumbnail,
+    String loggedInUsername
+  ) {
+    try {
+      User user = userRepository.findByUsername(loggedInUsername);
+      if (user == null) {
+        return new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null);
+      }
+
+      Video video = videoRepository.findById(videoId).orElse(null);
+      if (video == null || !video.getOwner().equals(loggedInUsername)) {
+        return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null);
+      }
+
+      if (title != null && !title.isEmpty()) {
+        video.setTitle(title);
+      }
+      if (description != null && !description.isEmpty()) {
+        video.setDescription(description);
+      }
+      if (thumbnail != null && !thumbnail.isEmpty()) {
+        boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
+        if (isThumbnailSaved) {
+          String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+          video.setThumbnailUrl(thumbnailUrl);
         }
+      }
 
-        try {
-            User user = userRepository.findByUsername(loggedInUsername);
-            if (user == null) {
-                return false; // User not found
-            }
-
-            boolean isVideoUploaded = fileUploader.uploadFile(video);
-            boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-            if (!isVideoUploaded || !isThumbnailSaved) {
-                return false; // File upload failed
-            }
-
-            String videoUrl = fileUploader.getFilePath(video);
-            String thumbnailUrl = fileUploader.getFilePath(thumbnail);
-            Video videoModel = new Video();
-            videoModel.setTitle(title);
-            videoModel.setDescription(description);
-            videoModel.setThumbnailUrl(thumbnailUrl);
-            videoModel.setUrl(videoUrl);
-            videoModel.setOwner(loggedInUsername);
-            videoModel.setCreatedAt(LocalDateTime.now());
-
-            videoRepository.save(videoModel);
-            return true; // Success
-        } catch (Exception e) {
-            return false; // Internal server error
-        }
+      videoRepository.save(video);
+      return new ApiResponse(HttpStatus.OK.value(), "Video updated successfully", video);
+    } catch (Exception e) {
+      return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage());
     }
+  }
 
-    public Page<Video> getVideos(int page) {
-        Pageable pageable = PageRequest.of(page - 1, 10);
-        return videoRepository.findAll(pageable);
+  public ApiResponse deleteVideo(int videoId, String loggedInUsername) {
+    try {
+      User user = userRepository.findByUsername(loggedInUsername);
+      if (user == null) {
+        return new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null);
+      }
+
+      Video video = videoRepository.findById(videoId).orElse(null);
+      if (video == null || !video.getOwner().equals(loggedInUsername)) {
+        return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null);
+      }
+
+      videoRepository.deleteById(videoId);
+      return new ApiResponse(HttpStatus.OK.value(), "Video deleted successfully", null);
+    } catch (Exception e) {
+      return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage());
     }
+  }
 
-    public Page<Video> getUserVideos(String username, int page) {
-        if (username == null || username.isEmpty()) {
-            return Page.empty(); // Indicate invalid input
-        }
-
-        Pageable pageable = PageRequest.of(page - 1, 10);
-        return videoRepository.findByOwner(username, pageable);
+  public ApiResponse getVideoComments(int videoId, int page) {
+    if (page <= 0) {
+      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
     }
-
-    public boolean updateVideoDetails(
-            String title,
-            String description,
-            int videoId,
-            MultipartFile thumbnail,
-            String loggedInUsername) {
-
-        try {
-            User user = userRepository.findByUsername(loggedInUsername);
-            if (user == null) {
-                return false; // User not found
-            }
-
-            Video video = videoRepository.findById(videoId).orElse(null);
-            if (video == null || !video.getOwner().equals(loggedInUsername)) {
-                return false; // Video not found or unauthorized
-            }
-
-            if (title != null && !title.isEmpty()) {
-                video.setTitle(title);
-            }
-            if (description != null && !description.isEmpty()) {
-                video.setDescription(description);
-            }
-            if (thumbnail != null && !thumbnail.isEmpty()) {
-                boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-                if (isThumbnailSaved) {
-                    String thumbnailUrl = fileUploader.getFilePath(thumbnail);
-                    video.setThumbnailUrl(thumbnailUrl);
-                }
-            }
-
-            videoRepository.save(video);
-            return true; // Success
-        } catch (Exception e) {
-            return false; // Internal server error
-        }
-    }
-
-    public boolean deleteVideo(int videoId, String loggedInUsername) {
-        try {
-            User user = userRepository.findByUsername(loggedInUsername);
-            if (user == null) {
-                return false; // User not found
-            }
-
-            Video video = videoRepository.findById(videoId).orElse(null);
-            if (video == null || !video.getOwner().equals(loggedInUsername)) {
-                return false; // Video not found or unauthorized
-            }
-
-            videoRepository.deleteById(videoId);
-            return true; // Success
-        } catch (Exception e) {
-            return false; // Internal server error
-        }
-    }
-
-    public Page<Comment> getVideoComments(int videoId, int page) {
-        Pageable pageable = PageRequest.of(page - 1, 10);
-        return commentRepository.findByVideo(videoId, pageable);
-    }
+    Pageable pageable = PageRequest.of(page - 1, 10);
+    Page<Comment> comments = commentRepository.findByVideo(videoId, pageable);
+    return new ApiResponse(HttpStatus.OK.value(), "Comments fetched successfully", comments);
+  }
 }
