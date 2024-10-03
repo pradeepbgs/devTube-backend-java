@@ -1,15 +1,17 @@
 package com.example.devtube.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.example.devtube.entities.Comment;
 import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
 import com.example.devtube.repository.CommentRepository;
-import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.repository.UserRepository;
+import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.utils.ApiResponse;
+
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 @Service
 public class CommentService {
@@ -26,6 +28,7 @@ public class CommentService {
   @Autowired
   private VideoRepository videoRepository;
 
+  ////
   public ApiResponse addComment(int videoId, String comment, HttpServletRequest request) {
     if (comment == null || comment.isEmpty()) {
       return new ApiResponse(400, "Please provide a comment", null);
@@ -51,6 +54,7 @@ public class CommentService {
     return new ApiResponse(200, "Comment added successfully", null);
   }
 
+  ///
   public ApiResponse deleteComment(int commentId, HttpServletRequest request) {
     String loggedInUserName = authService.getUserFromRequest(request);
     if (loggedInUserName == null || loggedInUserName.isEmpty()) {
@@ -70,6 +74,7 @@ public class CommentService {
     return new ApiResponse(200, "Comment deleted successfully", null);
   }
 
+  //
   public ApiResponse changeComment(int commentId, String comment, HttpServletRequest request) {
     if (comment == null || comment.isEmpty()) {
       return new ApiResponse(400, "Please provide a comment to change", null);

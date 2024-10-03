@@ -15,7 +15,7 @@ public class Comment {
     private Integer id;
     private String comment;
     private String owner;
-    private int video;
+    private int videoId;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -38,10 +38,10 @@ public class Comment {
         this.owner = owner;
     }
     public int getVideo() {
-        return video;
+        return videoId;
     }
-    public void setVideo(int video) {
-        this.video = video;
+    public void setVideo(int videoId) {
+        this.videoId = videoId;
     }
     public LocalDateTime getCreatedAt() {
         return createdAt;

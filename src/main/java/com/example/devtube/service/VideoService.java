@@ -1,5 +1,15 @@
 package com.example.devtube.service;
 
+import java.time.LocalDateTime;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.example.devtube.entities.Comment;
 import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
@@ -8,14 +18,6 @@ import com.example.devtube.repository.UserRepository;
 import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.utils.ApiResponse;
 import com.example.devtube.utils.FileUploader;
-import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class VideoService {
@@ -169,7 +171,7 @@ public class VideoService {
       return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
     }
     Pageable pageable = PageRequest.of(page - 1, 10);
-    Page<Comment> comments = commentRepository.findByVideo(videoId, pageable);
+    Page<Comment> comments = commentRepository.findByVideoId(videoId, pageable);
     return new ApiResponse(HttpStatus.OK.value(), "Comments fetched successfully", comments);
   }
 }
