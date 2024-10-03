@@ -28,7 +28,7 @@ public class Like {
     private long content_id;
 
     @Column(name="content_type",nullable = false)
-    private  String ContentType;
+    private  String contentType;
 
     @ManyToOne
     @JoinColumn(name="user_id",referencedColumnName="id")

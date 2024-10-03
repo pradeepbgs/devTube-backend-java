@@ -9,7 +9,6 @@ import com.example.devtube.entities.Like;
 import com.example.devtube.entities.User;
 import com.example.devtube.repository.LikeRepository;
 import com.example.devtube.repository.UserRepository;
-import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.utils.JwtTokenUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,11 +20,10 @@ public class LikeService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private VideoRepository videoRepository;
-    @Autowired
     private LikeRepository likeRepository;
 
-    public boolean  toggleVideoLike(int videoId,HttpServletRequest request) {
+    public boolean  toggleLike(int contentId,String contentType,
+    HttpServletRequest request) {
         String token = jwtTokenUtil.extractTokenFromRequest(request);
         if (token == null) {
             return false; // Token invalid or not present
@@ -40,21 +38,21 @@ public class LikeService {
             return false;
         }
 
-        if (!videoRepository.existsById(videoId)) {
+        if (!likeRepository.existsById(contentId)) {
             return false;
         }
 
         Optional<Like> existingLike = likeRepository
-                .findByLikedByAndContentIdAndContentType(user,videoId, "Video");
+                .findByLikedByAndContentIdAndContentType(user,contentId, contentType);
 
         if (existingLike.isPresent()) {
-            // Unlike the video by deleting the existing like
+            // Unlike the content by deleting the existing like
             likeRepository.delete(existingLike.get());
         } else {
-            // Like the video by creating a new Like entry
+            // Like the content by creating a new Like entry
             Like newLike =  Like.builder()
-                                    .content_id(videoId)
-                                    .ContentType("Video")
+                                    .content_id(contentId)
+                                    .contentType(contentType)
                                     .likedBy(user)
                                     .build();
             likeRepository.save(newLike);
