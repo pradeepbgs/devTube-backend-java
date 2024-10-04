@@ -10,7 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Component
 public class FileUploader {
-    public final String UPLOAD_DIR="/home/pradeep/Desktop/code/devtube/src/main/resources/static/images";
+    public final String UPLOAD_DIR="/home/pradeep/Desktop/code/devtube-java/src/main/resources/static/images";
     public boolean uploadFile(MultipartFile multipartFile){
         boolean isUploaded = false;
 

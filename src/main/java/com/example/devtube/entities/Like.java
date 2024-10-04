@@ -14,23 +14,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name="likes")
+@Table(name = "likes")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Like {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Integer id;
 
-    @Column(name = "content_id",nullable=false)
-    private long content_id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  private Integer id;
 
-    @Column(name="content_type",nullable = false)
-    private  String contentType;
+  @Column(name = "content_id", nullable = false)
+  private long contentId;
 
-    @ManyToOne
-    @JoinColumn(name="user_id",referencedColumnName="id")
-    private User likedBy;
+  @Column(name = "content_type", nullable = false)
+  private String contentType;
+
+  @ManyToOne
+  @JoinColumn(name = "user_id", referencedColumnName = "id")
+  private User likedBy;
 }

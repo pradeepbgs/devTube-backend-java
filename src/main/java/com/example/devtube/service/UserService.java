@@ -1,11 +1,15 @@
 package com.example.devtube.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.devtube.dto.UserInfoDTO;
+import com.example.devtube.dto.UserResponseDTO;
 import com.example.devtube.entities.User;
 import com.example.devtube.repository.UserRepository;
 import com.example.devtube.utils.ApiResponse;
@@ -52,7 +56,10 @@ public class UserService {
 
             userRepository.save(springUser);
 
-            return new ApiResponse(HttpStatus.CREATED.value(), "User registered successfully", springUser);
+            // will send customised response
+            UserResponseDTO userResponseDTO = new UserResponseDTO(springUser.getUsername(),springUser.getEmail());
+
+            return new ApiResponse(HttpStatus.CREATED.value(), "User registered successfully", userResponseDTO);
         } catch (Exception e) {
             return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage(), null);
         }
@@ -84,7 +91,14 @@ public class UserService {
             cookie.setHttpOnly(true);
             response.addCookie(cookie);
 
-            return new ApiResponse(HttpStatus.OK.value(), "Login successful", null);
+            UserResponseDTO userResponseDTO = new UserResponseDTO(user.getUsername(),user.getEmail());
+
+            Map<String,Object> responseBody = new HashMap<>();
+
+            responseBody.put("user", userResponseDTO);
+            responseBody.put("token", token);
+
+            return new ApiResponse(HttpStatus.OK.value(), "Login successful", responseBody);
         } catch (Exception e) {
             return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage(), null);
         }

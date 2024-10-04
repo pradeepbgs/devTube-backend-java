@@ -1,6 +1,7 @@
 package com.example.devtube.service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cloudinary.utils.ObjectUtils;
 import com.example.devtube.entities.Comment;
 import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
@@ -17,6 +19,7 @@ import com.example.devtube.repository.CommentRepository;
 import com.example.devtube.repository.UserRepository;
 import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.utils.ApiResponse;
+import com.example.devtube.utils.CloudinaryService;
 import com.example.devtube.utils.FileUploader;
 
 @Service
@@ -33,6 +36,9 @@ public class VideoService {
 
   @Autowired
   private CommentRepository commentRepository;
+
+  @Autowired
+  private CloudinaryService cloudinaryService;
 
   public ApiResponse uploadVideo(
     MultipartFile thumbnail,
@@ -63,15 +69,21 @@ public class VideoService {
       if (user == null) {
         return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "cannot find user!", null);
       }
+      // boolean isVideoUploaded = fileUploader.uploadFile(video);
+      // boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
+      // if (!isVideoUploaded || !isThumbnailSaved) {
+      //   return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "video upload failed on server!", null);
+      // }
 
-      boolean isVideoUploaded = fileUploader.uploadFile(video);
-      boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-      if (!isVideoUploaded || !isThumbnailSaved) {
-        return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "video upload failed on server!", null);
-      }
+      // String videoUrl = fileUploader.getFilePath(video);
+      // String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+ 
+      Map<String,Object> videoUploadResult = cloudinaryService.upload_file(video,"video");
+      String videoUrl = (String) videoUploadResult.get("secure_url");
 
-      String videoUrl = fileUploader.getFilePath(video);
-      String thumbnailUrl = fileUploader.getFilePath(thumbnail);
+      Map<String,Object> thumbnailUploadResult = cloudinaryService.upload_file(thumbnail,"image");
+      String thumbnailUrl = (String) thumbnailUploadResult.get("secure_url");
+
       Video videoModel = new Video();
       videoModel.setTitle(title);
       videoModel.setDescription(description);
