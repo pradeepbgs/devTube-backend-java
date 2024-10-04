@@ -89,6 +89,10 @@ public class VideoController {
 
   @DeleteMapping("/delete")
   public ResponseEntity<ApiResponse> deleteVideo(@RequestParam("videoId") int videoId, HttpServletRequest request) {
+    if (videoId <= 0) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+      .body(new ApiResponse(404, "please provide video id", null));
+    }
     String loggedInUsername = authService.getUserFromRequest(request);
     ApiResponse response = videoService.deleteVideo(videoId, loggedInUsername);
 

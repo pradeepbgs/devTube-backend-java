@@ -170,6 +170,14 @@ public class VideoService {
       if (video == null || !video.getOwner().equals(loggedInUsername)) {
         return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null);
       }
+      String videoUrl = video.getUrl();
+      String thumbnailUrl = video.getThumbnailUrl();
+
+      String videoPublicId = extractPublicIdFromUrl(videoUrl);
+      String thumbnailPublicId= extractPublicIdFromUrl(thumbnailUrl);
+
+        cloudinaryService.delete_file(videoPublicId,"video");
+        cloudinaryService.delete_file(thumbnailPublicId,"image");
 
       videoRepository.deleteById(videoId);
       return new ApiResponse(HttpStatus.OK.value(), "Video deleted successfully", null);
@@ -185,5 +193,16 @@ public class VideoService {
     Pageable pageable = PageRequest.of(page - 1, 10);
     Page<Comment> comments = commentRepository.findByVideoId(videoId, pageable);
     return new ApiResponse(HttpStatus.OK.value(), "Comments fetched successfully", comments);
+  }
+
+  private String extractPublicIdFromUrl(String url) {
+    // Split the URL by '/' and get the last part
+    String[] parts = url.split("/");
+    String lastPart = parts[parts.length - 1];
+  
+    // Remove the version and file extension
+    String[] lastPartParts = lastPart.split("\\.");
+    String publicId = lastPartParts[0]; // This will give you the public ID
+    return publicId;
   }
 }
