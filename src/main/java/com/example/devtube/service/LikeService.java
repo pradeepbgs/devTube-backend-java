@@ -1,17 +1,14 @@
 package com.example.devtube.service;
 
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.example.devtube.entities.Like;
 import com.example.devtube.entities.User;
 import com.example.devtube.repository.LikeRepository;
 import com.example.devtube.repository.UserRepository;
 import com.example.devtube.utils.JwtTokenUtil;
-
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 @Service
 public class LikeService {

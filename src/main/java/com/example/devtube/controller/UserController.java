@@ -1,7 +1,9 @@
 package com.example.devtube.controller;
 
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,9 +44,16 @@ public class UserController {
     }
 
     @PutMapping("/change-user-details")
-    public ResponseEntity<ApiResponse> changeDetails(@RequestBody UserInfoDTO userInfo, HttpServletRequest request) {
-        ApiResponse apiResponse = userService.changeUserDetails(userInfo, request);
-        return ResponseEntity.status(apiResponse.getStatus()).body(apiResponse);
+    public CompletableFuture<ResponseEntity<ApiResponse>> changeDetails(@RequestBody UserInfoDTO userInfo,
+            HttpServletRequest request) {
+        return userService
+                .changeUserDetails(userInfo, request)
+                .thenApply(res -> ResponseEntity.ok(res))
+                .exceptionally(e -> {
+                    e.printStackTrace();
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                            new ApiResponse(500, "An error occurred while processing the request", null));
+                });
     }
 
     @PostMapping("/logout")

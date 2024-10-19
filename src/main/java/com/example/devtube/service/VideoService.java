@@ -2,16 +2,17 @@ package com.example.devtube.service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.cloudinary.utils.ObjectUtils;
 import com.example.devtube.entities.Comment;
 import com.example.devtube.entities.User;
 import com.example.devtube.entities.Video;
@@ -21,6 +22,8 @@ import com.example.devtube.repository.VideoRepository;
 import com.example.devtube.utils.ApiResponse;
 import com.example.devtube.utils.CloudinaryService;
 import com.example.devtube.utils.FileUploader;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class VideoService {
@@ -40,12 +43,16 @@ public class VideoService {
   @Autowired
   private CloudinaryService cloudinaryService;
 
-  public ApiResponse uploadVideo(
+  @Autowired
+  private AuthService authService;
+
+  @Async
+  public CompletableFuture<ApiResponse> uploadVideo(
     MultipartFile thumbnail,
     String title,
     String description,
     MultipartFile video,
-    String loggedInUsername
+    HttpServletRequest request
   ) {
     if (
       title == null ||
@@ -57,70 +64,81 @@ public class VideoService {
       thumbnail == null ||
       thumbnail.isEmpty()
     ) {
-      return new ApiResponse(
-        HttpStatus.BAD_REQUEST.value(),
-        "title or description or video or thumbnail cannot be empty",
-        null
+      return CompletableFuture.completedFuture(
+        new ApiResponse(
+          HttpStatus.BAD_REQUEST.value(),
+          "title or description or video or thumbnail cannot be empty",
+          null
+        )
       );
     }
 
     try {
+      String loggedInUsername = authService.getUserFromRequest(request);
       User user = userRepository.findByUsername(loggedInUsername);
       if (user == null) {
-        return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "cannot find user!", null);
+        return CompletableFuture.completedFuture(
+          new ApiResponse(HttpStatus.BAD_REQUEST.value(), "cannot find the user!", null)
+        );
       }
-      // boolean isVideoUploaded = fileUploader.uploadFile(video);
-      // boolean isThumbnailSaved = fileUploader.uploadFile(thumbnail);
-      // if (!isVideoUploaded || !isThumbnailSaved) {
-      //   return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "video upload failed on server!", null);
-      // }
 
-      // String videoUrl = fileUploader.getFilePath(video);
-      // String thumbnailUrl = fileUploader.getFilePath(thumbnail);
- 
-      Map<String,Object> videoUploadResult = cloudinaryService.upload_file(video,"video");
+      Map<String, Object> videoUploadResult = cloudinaryService.upload_file(video, "video");
       String videoUrl = (String) videoUploadResult.get("secure_url");
 
-      Map<String,Object> thumbnailUploadResult = cloudinaryService.upload_file(thumbnail,"image");
+      Map<String, Object> thumbnailUploadResult = cloudinaryService.upload_file(thumbnail, "image");
       String thumbnailUrl = (String) thumbnailUploadResult.get("secure_url");
 
-      Video videoModel = new Video();
-      videoModel.setTitle(title);
-      videoModel.setDescription(description);
-      videoModel.setThumbnailUrl(thumbnailUrl);
-      videoModel.setUrl(videoUrl);
-      videoModel.setOwner(loggedInUsername);
-      videoModel.setCreatedAt(LocalDateTime.now());
+      Video videoModel = Video.builder()
+        .title(title)
+        .description(description)
+        .thumbnailUrl(thumbnailUrl)
+        .url(videoUrl)
+        .owner(loggedInUsername)
+        .createdAt(LocalDateTime.now())
+        .build();
 
       videoRepository.save(videoModel);
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "successfully video uploaded", videoModel);
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.OK.value(), "Video uploaded successfully", videoModel)
+      );
     } catch (Exception e) {
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "internal server error!", e.getMessage());
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage())
+      );
     }
   }
 
-  public ApiResponse getVideos(int page) {
+  @Async
+  public CompletableFuture<ApiResponse> getVideos(int page) {
     if (page <= 0) {
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null)
+        );
     }
     Pageable pageable = PageRequest.of(page - 1, 10);
     Page<Video> videos = videoRepository.findAll(pageable);
-    return new ApiResponse(HttpStatus.OK.value(), "Videos fetched successfully", videos);
+    return CompletableFuture.completedFuture(
+    new ApiResponse(HttpStatus.OK.value(), "Videos fetched successfully", videos));
   }
 
-  public ApiResponse getUserVideos(String username, int page) {
+  @Async
+  public CompletableFuture<ApiResponse> getUserVideos(String username, int page) {
     if (username == null || username.isEmpty()) {
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Username cannot be empty", null);
+      return CompletableFuture.completedFuture(
+      new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Username cannot be empty", null));
     }
     if (page <= 0) {
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
+      return CompletableFuture.completedFuture(
+      new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null));
     }
     Pageable pageable = PageRequest.of(page - 1, 10);
     Page<Video> userVideos = videoRepository.findByOwner(username, pageable);
-    return new ApiResponse(HttpStatus.OK.value(), "User's videos fetched successfully", userVideos);
+    return CompletableFuture.completedFuture(
+    new ApiResponse(HttpStatus.OK.value(), "User's videos fetched successfully", userVideos));
   }
 
-  public ApiResponse updateVideoDetails(
+  @Async
+  public CompletableFuture<ApiResponse> updateVideoDetails(
     String title,
     String description,
     int videoId,
@@ -130,12 +148,14 @@ public class VideoService {
     try {
       User user = userRepository.findByUsername(loggedInUsername);
       if (user == null) {
-        return new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null);
+        return CompletableFuture.completedFuture(
+          new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null));
       }
 
       Video video = videoRepository.findById(videoId).orElse(null);
       if (video == null || !video.getOwner().equals(loggedInUsername)) {
-        return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null);
+        return CompletableFuture.completedFuture(
+          new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null));
       }
 
       if (title != null && !title.isEmpty()) {
@@ -153,53 +173,59 @@ public class VideoService {
       }
 
       videoRepository.save(video);
-      return new ApiResponse(HttpStatus.OK.value(), "Video updated successfully", video);
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.OK.value(), "Video updated successfully", video));
     } catch (Exception e) {
-      return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage());
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage()));
     }
   }
 
-  public ApiResponse deleteVideo(int videoId, String loggedInUsername) {
+  @Async
+  public CompletableFuture <ApiResponse> deleteVideo(int videoId, String loggedInUsername) {
     try {
       User user = userRepository.findByUsername(loggedInUsername);
       if (user == null) {
-        return new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null);
+        return CompletableFuture.completedFuture(
+          new ApiResponse(HttpStatus.NOT_FOUND.value(), "User not found", null));
       }
 
       Video video = videoRepository.findById(videoId).orElse(null);
       if (video == null || !video.getOwner().equals(loggedInUsername)) {
-        return new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null);
+        return CompletableFuture.completedFuture(
+          new ApiResponse(HttpStatus.UNAUTHORIZED.value(), "Video not found or unauthorized", null));
       }
       String videoUrl = video.getUrl();
       String thumbnailUrl = video.getThumbnailUrl();
 
       String videoPublicId = extractPublicIdFromUrl(videoUrl);
-      String thumbnailPublicId= extractPublicIdFromUrl(thumbnailUrl);
+      String thumbnailPublicId = extractPublicIdFromUrl(thumbnailUrl);
 
-        cloudinaryService.delete_file(videoPublicId,"video");
-        cloudinaryService.delete_file(thumbnailPublicId,"image");
+      cloudinaryService.delete_file(videoPublicId, "video");
+      cloudinaryService.delete_file(thumbnailPublicId, "image");
 
       videoRepository.deleteById(videoId);
-      return new ApiResponse(HttpStatus.OK.value(), "Video deleted successfully", null);
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.OK.value(), "Video deleted successfully", null));
     } catch (Exception e) {
-      return new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage());
+      return CompletableFuture.completedFuture(
+        new ApiResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal server error", e.getMessage()));
     }
   }
 
-  public ApiResponse getVideoComments(int videoId, int page) {
-    if (page <= 0) {
-      return new ApiResponse(HttpStatus.BAD_REQUEST.value(), "Page number must be greater than 0", null);
-    }
+  @Async
+  public CompletableFuture <ApiResponse> getVideoComments(int videoId, int page) {
     Pageable pageable = PageRequest.of(page - 1, 10);
     Page<Comment> comments = commentRepository.findByVideoId(videoId, pageable);
-    return new ApiResponse(HttpStatus.OK.value(), "Comments fetched successfully", comments);
+    return CompletableFuture.completedFuture(
+      new ApiResponse(HttpStatus.OK.value(), "Comments fetched successfully", comments));
   }
 
   private String extractPublicIdFromUrl(String url) {
     // Split the URL by '/' and get the last part
     String[] parts = url.split("/");
     String lastPart = parts[parts.length - 1];
-  
+
     // Remove the version and file extension
     String[] lastPartParts = lastPart.split("\\.");
     String publicId = lastPartParts[0]; // This will give you the public ID
